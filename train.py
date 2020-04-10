@@ -1,23 +1,13 @@
 from __future__ import print_function, division
+
 import torch
 import pretrainedmodels
 import torch.nn as nn
-from data_handlers import *
 import torch.optim as optim
-from torch.optim import lr_scheduler
-import numpy as np
 import torchvision.transforms as tvt
-import pickle
+from tqdm import tqdm
 
-
-def prep_data():
-    test_imgs = pickle.load(open("../data/test_images_512.pk", 'rb'), encoding='bytes')
-    train_imgs = pickle.load(open("../data/train_images_512.pk", 'rb'), encoding='bytes')
-    train_labels = pickle.load(open("../data/train_labels_512.pk", 'rb'), encoding='bytes')
-
-    data_loaders = make_data_loaders(train_imgs, train_labels, test_imgs)
-    return data_loaders
-
+from code.data_utils import *
 
 if __name__=='__main__':
 
@@ -36,15 +26,15 @@ if __name__=='__main__':
 
     with torch.no_grad():
         model.eval()
-        for sample, label in data_loaders['val']:
+        for sample, label in tqdm(data_loaders['val']):
             preds = model(sample.to(device))
-            if np.rint(nn.Sigmoid()(preds.cpu().numpy())) == label.numpy():
+            if nn.Sigmoid()(preds).round().item() == label.numpy():
                 correct += 1
 
     print('Accuracy before training is {}, {} correct'.format(correct/len(data_loaders['val']), correct))
     model.train()
 
-    for epoch in range(15):
+    for epoch in tqdm(range(150)):
         preds = []
         labels = []
 
@@ -66,9 +56,9 @@ if __name__=='__main__':
 
     with torch.no_grad():
         model.eval()
-        for sample, label in data_loaders['val']:
+        for sample, label in tqdm(data_loaders['val']):
             preds = nn.Sigmoid()(model(sample.to(device)))
-            if np.rint(preds.cpu().numpy()) == label.numpy():
+            if preds.round().item() == label.numpy():
                 correct += 1
 
     print('Accuracy after training is {}, {} correct'.format(correct/len(data_loaders['val']), correct))
