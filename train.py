@@ -21,12 +21,14 @@ def prep_data():
 
 if __name__=='__main__':
 
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     data_loaders = prep_data()
 
     model_name = 'resnet18'
     model = pretrainedmodels.__dict__[model_name](num_classes=1000, pretrained='imagenet')
     model.last_linear = nn.Linear(model.last_linear.in_features, 1)
-    model.cuda()
+    model.to(device)
 
     bigfella = optim.Adam(model.parameters(), lr=0.001)
     criterion = nn.BCEWithLogitsLoss(weight=torch.tensor([0.3]))
@@ -35,8 +37,8 @@ if __name__=='__main__':
     with torch.no_grad():
         model.eval()
         for sample, label in data_loaders['val']:
-            preds = nn.Softmax(dim=1)(model(sample.cuda()))
-            if np.rint(preds.cpu().numpy()) == label.numpy():
+            preds = model(sample.to(device))
+            if np.rint(nn.Sigmoid()(preds.cpu().numpy())) == label.numpy():
                 correct += 1
 
     print('Accuracy before training is {}, {} correct'.format(correct/len(data_loaders['val']), correct))
@@ -49,7 +51,7 @@ if __name__=='__main__':
         bigfella.zero_grad()
         for sample, label in data_loaders["train"]:
             sample = tvt.ToTensor()(tvt.RandomCrop(350)(tvt.ToPILImage()(sample.squeeze(0)))).unsqueeze(0)
-            pred = model(sample.cuda())
+            pred = model(sample.to(device))
             preds.append(pred.cpu().squeeze(0))
             labels.append(label)
             if label == 0:
@@ -65,7 +67,7 @@ if __name__=='__main__':
     with torch.no_grad():
         model.eval()
         for sample, label in data_loaders['val']:
-            preds = nn.Softmax(dim=1)(model(sample.cuda()))
+            preds = nn.Sigmoid()(model(sample.to(device)))
             if np.rint(preds.cpu().numpy()) == label.numpy():
                 correct += 1
 
