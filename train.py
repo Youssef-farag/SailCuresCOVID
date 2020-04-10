@@ -5,11 +5,31 @@ import pretrainedmodels
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as tvt
+import numpy as np
 from tqdm import tqdm
+import random
 
 from code.data_utils import *
 
-if __name__=='__main__':
+random.seed(0)
+torch.manual_seed(0)
+np.random.seed(0)
+
+
+def val_phase(model, data_loaders):
+    correct = 0
+    with torch.no_grad():
+        model.eval()
+        for sample, label in tqdm(data_loaders['val']):
+            preds = model(sample.to(device))
+            if nn.Sigmoid()(preds).round().item() == label.numpy():
+                correct += 1
+
+    print('Accuracy before training is {}, {} correct'.format(correct/len(data_loaders['val']), correct))
+    model.train()
+
+
+if __name__ == '__main__':
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -24,15 +44,7 @@ if __name__=='__main__':
     criterion = nn.BCEWithLogitsLoss(weight=torch.tensor([0.3]))
     correct = 0
 
-    with torch.no_grad():
-        model.eval()
-        for sample, label in tqdm(data_loaders['val']):
-            preds = model(sample.to(device))
-            if nn.Sigmoid()(preds).round().item() == label.numpy():
-                correct += 1
-
-    print('Accuracy before training is {}, {} correct'.format(correct/len(data_loaders['val']), correct))
-    model.train()
+    val_phase(model, data_loaders)
 
     for epoch in tqdm(range(150)):
         preds = []
@@ -52,14 +64,4 @@ if __name__=='__main__':
         loss.backward()
         bigfella.step()
 
-    correct = 0
-
-    with torch.no_grad():
-        model.eval()
-        for sample, label in tqdm(data_loaders['val']):
-            preds = nn.Sigmoid()(model(sample.to(device)))
-            if preds.round().item() == label.numpy():
-                correct += 1
-
-    print('Accuracy after training is {}, {} correct'.format(correct/len(data_loaders['val']), correct))
-    model.train()
+    val_phase(model, data_loaders)
