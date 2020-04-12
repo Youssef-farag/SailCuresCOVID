@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 import random
 
-from code.data_utils import *
+from data_utils import *
 
 random.seed(0)
 torch.manual_seed(0)

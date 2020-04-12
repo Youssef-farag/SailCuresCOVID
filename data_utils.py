@@ -1,5 +1,5 @@
 import pickle
-from .dataset_classes import *
+from dataset_classes import *
 from torch.utils.data import DataLoader
 
 
