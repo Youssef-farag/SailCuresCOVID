@@ -25,7 +25,7 @@ def val_phase(model, data_loaders):
             if nn.Sigmoid()(preds).round().item() == label.numpy():
                 correct += 1
 
-    print('Accuracy before training is {}, {} correct'.format(correct/len(data_loaders['val']), correct))
+    print('Accuracy is {}, {} correct'.format(correct/len(data_loaders['val']), correct))
     model.train()
 
 
