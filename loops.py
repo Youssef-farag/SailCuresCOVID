@@ -112,7 +112,7 @@ def train(train_loader, model_idx, args):
     optimizer = optim.Adam(model.parameters(), lr=args['lr'])
     if args['schedule']:
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5,
-                                                         patience=args['schedule']['patience'])
+                                                         patience=args['scheduler']['patience'])
     else:
         scheduler = None
 
