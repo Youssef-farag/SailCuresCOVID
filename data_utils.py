@@ -3,39 +3,24 @@ from dataset_classes import *
 from torch.utils.data import DataLoader
 
 
-def make_data_loaders(train_imgs, train_labels, test_imgs):
-    train_dataset = CovidDatasetTrain(train_imgs[:50], train_labels[:50])
-    val_dataset = CovidDatasetVal(train_imgs[50:], train_labels[50:])
-    test_dataset = CovidDatasetTest(test_imgs)
-
-    return {
-        "train": DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=1, drop_last=False),
-        "val": DataLoader(val_dataset, batch_size=1, shuffle=True, num_workers=1, drop_last=False),
-        "test": DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=1, drop_last=False),
-    }
-
-
-def prep_data():
-    test_imgs = pickle.load(open("../data/test_images_512.pk", 'rb'), encoding='bytes')
-    train_imgs = pickle.load(open("../data/train_images_512.pk", 'rb'), encoding='bytes')
-    train_labels = pickle.load(open("../data/train_labels_512.pk", 'rb'), encoding='bytes')
-
-    data_loaders = make_data_loaders(train_imgs, train_labels, test_imgs)
-    return data_loaders
-
-
-def indexDataset(indices):
+def make_train_data_loader(indices):
     imgs = pickle.load(open("../data/train_images_512.pk", 'rb'), encoding='bytes')[indices]
     labels = pickle.load(open("../data/train_labels_512.pk", 'rb'), encoding='bytes')[indices]
-    indexed_dataset = CovidDatasetTrain(imgs, labels)
-    return indexed_dataset
+    dataset = CovidDatasetTrain(imgs, labels)
+
+    return DataLoader(dataset, batch_size=69, shuffle=False, num_workers=1, drop_last=False)
 
 
-def make_train_data_loader(dataset):
-    # TODO: transformations here for train dataset
-    return DataLoader(dataset, batch_size=1, shuffle=True, num_workers=1)
+def make_val_data_loader(indices):
+    imgs = pickle.load(open("../data/train_images_512.pk", 'rb'), encoding='bytes')[indices]
+    labels = pickle.load(open("../data/train_labels_512.pk", 'rb'), encoding='bytes')[indices]
+    dataset = CovidDatasetVal(imgs, labels)
+
+    return DataLoader(dataset, batch_size=1, shuffle=True, num_workers=1, drop_last=False)
 
 
-def make_test_data_loader(dataset):
-    # TODO: transformations here for test dataset
-    return DataLoader(dataset, batch_size=1, shuffle=True, num_workers=1)
+def make_test_data_loader():
+    imgs = pickle.load(open("../data/test_images_512.pk", 'rb'), encoding='bytes')
+    dataset = CovidDatasetTest(imgs)
+
+    return DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1, drop_last=False)
