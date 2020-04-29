@@ -23,3 +23,19 @@ def prep_data():
     data_loaders = make_data_loaders(train_imgs, train_labels, test_imgs)
     return data_loaders
 
+
+def indexDataset(indices):
+    imgs = pickle.load(open("../data/train_images_512.pk", 'rb'), encoding='bytes')[indices]
+    labels = pickle.load(open("../data/train_labels_512.pk", 'rb'), encoding='bytes')[indices]
+    indexed_dataset = CovidDatasetTrain(imgs, labels)
+    return indexed_dataset
+
+
+def make_train_data_loader(dataset):
+    # TODO: transformations here for train dataset
+    return DataLoader(dataset, batch_size=1, shuffle=True, num_workers=1)
+
+
+def make_test_data_loader(dataset):
+    # TODO: transformations here for test dataset
+    return DataLoader(dataset, batch_size=1, shuffle=True, num_workers=1)
