@@ -29,18 +29,15 @@ def main():
                                 bias=False)
         model.to(device)
 
-        opt = optim.Adam(model.parameters(), lr=0.00001)
-        criterion = nn.BCEWithLogitsLoss()
+        opt = optim.Adam(model.parameters(), lr=0.00005)
+        criterion = nn.BCEWithLogitsLoss(weight=torch.tensor([0.4]))
 
-        train_loader = make_train_data_loader(indices=train_idx)
-        val_loader = make_val_data_loader(indices=val_idx)
+        train_loader = make_train_data_loader(train_idx)
+        val_loader = make_val_data_loader(val_idx)
 
         # train model
-        loops.train(model, train_loader, criterion, opt, device, epochs=25)
-        # evaluate val
-        loops.val_phase_cv(model, val_loader, device)
+        loops.train(model, train_loader, val_loader, criterion, opt, epochs=125, model_idx=val_idx[0])
         # save model to disk
-        torch.save(model.state_dict(), "./models/model_" + str(val_idx[0]))
         gc.collect()
 
     # evaluate the 70 models

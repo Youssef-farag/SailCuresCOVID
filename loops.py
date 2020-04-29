@@ -39,7 +39,7 @@ def eval_ensemble():
                     if nn.Sigmoid()(pred).round().item() == label.numpy():
                         correct += 1
 
-    print('Accuracy is {}, {} correct'.format(correct / 70, correct))
+    print('Accuracy is {}, {} correct'.format(correct / 70*12, correct))
 
 
 def generate_predictions():
@@ -76,15 +76,16 @@ def generate_predictions():
                     pred_dict[str(idx)].append(preds)
 
     for i in range(20):
-        pred_dict[str(i)] = np.mean(pred_dict[str(i)])
+        pred_dict[str(i)] = np.mean(pred_dict[str(i)]).round() == 1
 
     np.save('./models/final_predictions.npy', pred_dict)
-    print(pred_dict)
-    df = pd.DataFrame(data=pred_dict, index=[0])
+    df = pd.DataFrame(data=pred_dict, index=[0]).T
     df.to_csv('./models/final_predictions.csv')
 
 
-def val_phase_cv(model, data_loader, device):
+def val_phase_cv(model, criterion, data_loader, verbose=False):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     correct = 0
 
     with torch.no_grad():
@@ -95,32 +96,36 @@ def val_phase_cv(model, data_loader, device):
 
         preds = model(samples.to(device))
 
-        print('Label is {}, predictions are: '.format(labels[0]),
-              np.asarray(nn.Sigmoid()(preds).detach().cpu().double()))
+        if verbose:
+            print('Label is {}, predictions are: '.format(labels[0]),
+                  np.asarray(nn.Sigmoid()(preds).detach().cpu().double()))
+
+        loss = criterion(preds.detach().cpu(), labels)
 
         for pred, label in zip(preds, labels):
             if nn.Sigmoid()(pred).round().item() == label.numpy():
                 correct += 1
-
-    print('Accuracy is {}, {} correct, average pred {}'.
-          format(correct / (len(data_loader)*12), correct,
-                 np.asarray(nn.Sigmoid()(preds).detach().cpu().double()).mean()))
+    if verbose:
+        print('Loss is {}, {} correct, average pred {}'.
+              format(loss, correct,
+                     np.asarray(nn.Sigmoid()(preds).detach().cpu().double()).mean()))
     model.train()
+    return loss, labels[0]
 
 
-def train(model, data_loader, criterion, optimizer, device, epochs):
+def train(model, train_loader, val_loader, criterion, optimizer, epochs, model_idx):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    best_val = np.inf
 
     for epoch in range(epochs):
         preds = []
         labels = []
 
         optimizer.zero_grad()
-        for sample, label in data_loader:
+        for sample, label in train_loader:
             pred = model(sample.to(device))
             preds.append(pred.cpu())
             labels.append(label.unsqueeze(1))
-            # if len(pred[np.where(label == 0)[0], :]) > 0:
-                # print(np.asarray(nn.Sigmoid()(pred[np.where(label == 0)[0], :]).detach().cpu().double()))
 
         if len(preds) > 1:
             preds = torch.cat(preds, dim=0)
@@ -129,8 +134,20 @@ def train(model, data_loader, criterion, optimizer, device, epochs):
             preds = preds[0]
             labels = labels[0].float()
 
-        loss = criterion(preds, labels)
-        # print('Loss is {}'.format(loss.item()))
-        loss.backward()
+        training_loss = criterion(preds, labels)
+        training_loss.backward()
         optimizer.step()
+        if epoch == epochs - 1:
+            val_loss, val_label = val_phase_cv(model, criterion, val_loader, verbose=True)
+        else:
+            val_loss, val_label = val_phase_cv(model, criterion, val_loader, verbose=False)
+
+        if val_loss < best_val:
+            torch.save(model.state_dict(), "./models/model_" + str(model_idx))
+            best_val = val_loss
+        label = 'benign' if val_label == 0 else 'COVID'
+        print('Epoch {} Train loss is {}, Val loss is {} on a {} example'.
+              format(epoch, training_loss.item(), val_loss.item(), label))
         gc.collect()
+
+    print('Best val loss is {}'.format(best_val))
