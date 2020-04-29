@@ -26,7 +26,6 @@ class CovidDatasetTrain(Dataset):
                                        tvt.RandomRotation((-90,-90))]),
                      tvt.RandomChoice([tvt.RandomHorizontalFlip(),
                                        tvt.RandomVerticalFlip()]),
-                     # tvt.ColorJitter(brightness=0.05, contrast=0.05, saturation=0.05),
                      tvt.Resize(256)])
 
         sample = transforms(sample)

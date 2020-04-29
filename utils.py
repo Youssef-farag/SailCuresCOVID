@@ -1,4 +1,6 @@
 import pickle
+import pretrainedmodels
+import torch.nn as nn
 from dataset_classes import *
 from torch.utils.data import DataLoader
 
@@ -24,3 +26,14 @@ def make_test_data_loader():
     dataset = CovidDatasetTest(imgs)
 
     return DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1, drop_last=False)
+
+
+def prep_model(args):
+    model = pretrainedmodels.__dict__['resnet18'](num_classes=1000, pretrained='imagenet')
+    model.last_linear = nn.Linear(model.last_linear.in_features, 1)
+    model.inplanes = 64
+    model.conv1 = nn.Conv2d(1, model.inplanes, kernel_size=7, stride=2, padding=3,
+                            bias=False)
+    model.to(args['device'])
+
+    return model
