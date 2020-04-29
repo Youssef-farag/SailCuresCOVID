@@ -5,13 +5,13 @@ from torch.utils.data import DataLoader
 
 def make_data_loaders(train_imgs, train_labels, test_imgs):
     train_dataset = CovidDatasetTrain(train_imgs[:50], train_labels[:50])
-    val_dataset = CovidDatasetTrain(train_imgs[50:], train_labels[50:])
+    val_dataset = CovidDatasetVal(train_imgs[50:], train_labels[50:])
     test_dataset = CovidDatasetTest(test_imgs)
 
     return {
-        "train": DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=1),
-        "val": DataLoader(val_dataset, batch_size=1, shuffle=True, num_workers=1),
-        "test": DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=1),
+        "train": DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=1, drop_last=False),
+        "val": DataLoader(val_dataset, batch_size=1, shuffle=True, num_workers=1, drop_last=False),
+        "test": DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=1, drop_last=False),
     }
 
 
@@ -23,3 +23,19 @@ def prep_data():
     data_loaders = make_data_loaders(train_imgs, train_labels, test_imgs)
     return data_loaders
 
+
+def indexDataset(indices):
+    imgs = pickle.load(open("../data/train_images_512.pk", 'rb'), encoding='bytes')[indices]
+    labels = pickle.load(open("../data/train_labels_512.pk", 'rb'), encoding='bytes')[indices]
+    indexed_dataset = CovidDatasetTrain(imgs, labels)
+    return indexed_dataset
+
+
+def make_train_data_loader(dataset):
+    # TODO: transformations here for train dataset
+    return DataLoader(dataset, batch_size=1, shuffle=True, num_workers=1)
+
+
+def make_test_data_loader(dataset):
+    # TODO: transformations here for test dataset
+    return DataLoader(dataset, batch_size=1, shuffle=True, num_workers=1)
