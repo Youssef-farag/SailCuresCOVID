@@ -61,14 +61,14 @@ def generate_predictions(args):
                 preds = np.mean(nn.Sigmoid()(preds).detach().cpu().numpy(), axis=1)
 
                 if index == 0:
-                    pred_dict[str(idx)] = [preds]
+                    pred_dict[idx] = [preds]
                 else:
-                    pred_dict[str(idx)].append(preds)
+                    pred_dict[idx].append(preds)
 
     np.save(os.path.join(args['results_dir'], 'final_predictions.npy'), pred_dict)
 
     for i in range(20):
-        pred_dict[str(i)] = np.mean(pred_dict[str(i)]).round() == 1
+        pred_dict[i] = np.mean(pred_dict[i]).round() == 1
     df = pd.DataFrame(data=pred_dict, index=[0]).T
     df.to_csv(os.path.join(args['results_dir'], 'final_predictions.csv'))
 
@@ -110,12 +110,15 @@ def train(train_loader, model_idx, args):
     device = args['device']
 
     optimizer = optim.Adam(model.parameters(), lr=args['lr'])
+
+    # learning rate scheduler
     if args['schedule']:
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5,
                                                          patience=args['scheduler']['patience'])
     else:
         scheduler = None
 
+    # loss function with weighting
     criterion = nn.BCEWithLogitsLoss(weight=torch.tensor([args['loss_weight']]))
 
     best_val = np.inf
@@ -130,6 +133,7 @@ def train(train_loader, model_idx, args):
             preds.append(pred.cpu())
             labels.append(label.unsqueeze(1))
 
+        # check to see if epoch contains multiple batches
         if len(preds) > 1:
             preds = torch.cat(preds, dim=0)
             labels = torch.cat(labels, dim=0).float()
@@ -144,6 +148,7 @@ def train(train_loader, model_idx, args):
         val_loss, val_label = val_phase_cv(model, model_idx, criterion, args,
                                            verbose=(epoch == args['train_epochs'] - 1))
 
+        # save model with best validation loss
         if val_loss < best_val:
             torch.save(model.state_dict(), os.path.join(args['results_dir'],"model_" + str(model_idx[0])))
             best_val = val_loss
